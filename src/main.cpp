@@ -24,7 +24,6 @@ void make_pipe_pair(int * pair1, int * pair2)
 }
 
 /*  Convenience function to close a pair of file descriptors  */
-
 void close_pair(const int rfd, const int wfd)
 {
 	if (close(rfd) == -1 || close(wfd) == -1) {
@@ -60,17 +59,9 @@ void child_func(const int wpipe, const auto idx)
 	if (idx == SYS_vfork) { exit(0); }
 	ret = syscall(idx, 0, 0, 0);
 
-	//stringstream ss;
-	//ss << "syscall( " << idx << ") => " << name << " | " << ret << " : " << strerror(errno) << "(" << errno << ")" << endl ;
-	//auto writeMsg = ss.str();
-	//cerr << writeMsg;
 	char writeMsg[BUFFER_SIZE];
-
-	//std::string writeMsg = tfm::format(" -- syscall(%u) is %s = %d : %s (%d)\n", idx, name, ret, strerror(errno), errno);
 	sprintf(writeMsg," -- syscall(%u) is %s = %d : %s (%d)\n", idx, name, ret, strerror(errno), errno);
 	if (write(wpipe, writeMsg, strlen(writeMsg) + 1) == -1) {
-	//if (write(wpipe, writeMsg.c_str(), writeMsg.length()+1) == -1) {
-		//cerr << "error writing to pipe in child";
 		exit(EXIT_FAILURE);
 	}
 
