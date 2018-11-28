@@ -54,13 +54,24 @@ void child_func(const int wpipe, const auto idx)
 
 	// things currently break horribly if  CLONE, FORK or VFORK are called and the call succeeds
 	// guess it should be straight forward to kill the forks
-	if (idx == SYS_clone) { exit(0); }
-	if (idx == SYS_fork) { exit(0); }
-	if (idx == SYS_vfork) { exit(0); }
+	//if (idx == SYS_clone) { exit(0); }
+	//if (idx == SYS_fork) { exit(0); }
+	//if (idx == SYS_vfork) { exit(0); }
 	ret = syscall(idx, 0, 0, 0);
 
+
+	// check both EPERM and EACCES - LXC returns EACCES and Docker EPERM
+	std::string sStatus;
+	if ((ret == EPERM) || (ret == EACCES)) {
+		//cerr << "blocked" << endl;
+		sStatus = "filtered";
+	} else {
+		//cerr << "allowed" << endl;
+		sStatus = "allowed";
+	}
+
 	char writeMsg[BUFFER_SIZE];
-	sprintf(writeMsg," -- syscall(%u) is %s = %d : %s (%d)\n", idx, name, ret, strerror(errno), errno);
+	sprintf(writeMsg,"%u|%s|%s|%s|%d", idx, name, sStatus.c_str(), strerror(errno), errno);
 	if (write(wpipe, writeMsg, strlen(writeMsg) + 1) == -1) {
 		exit(EXIT_FAILURE);
 	}
@@ -108,7 +119,7 @@ int main() {
 			//cout << "Pipe from child " << i +1 << " closed." << endl;
 		}
 		else {
-			cout << readMsg;// << endl;
+			cout << readMsg << endl;
 		}
 	}
 
