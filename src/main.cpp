@@ -82,14 +82,73 @@ void child_func(const int wpipe, const auto idx)
 
 }
 
-int main() {
+int Usage( char *ProgramName )
+{
+	cout << endl;
+	cout << "Usage: " << ProgramName << " [-f] [-a]" << endl
+		 << "    or " << ProgramName << endl;
+	cout << "  -f     Show only filtered syscalls" << endl;
+	cout << "  -a     Show only allowed syscalls" << endl;
+	cout << endl;
+	cout << "NOTE: By default, both allowed and filtered syscalls are returned" << endl;
+	return -1;
+}
+
+
+int main (int argc, char *argv[]) {
+
+	int arg;
+	bool bFiltered = false;
+	bool bAllowed = false;
+	bool bUnknownParam = false;
+
+    if (argc > 3) {
+		return Usage( argv[0] );
+    }
+
+	if (argc > 1) {
+		for( arg = 1; arg < argc; arg++ ) {
+			switch( argv[arg][0] ) {
+
+			case L'-':
+			case L'/':
+				switch( argv[arg][1] ) {
+				case L'?':
+					return Usage( argv[0] );
+				case L'h':
+					return Usage( argv[0] );
+				case L'f': //filtered syscalls
+				case L'F':
+					bFiltered = true;
+					break;
+				case L'a': //allowed syscalls
+				case L'A':
+					bAllowed = true;
+					break;
+				default:
+					bUnknownParam = true;
+					break;
+				}
+				break;
+			}
+		}
+	}
+
+	if (bUnknownParam){
+		return Usage( argv[0] );
+	}
+
+	if ((!bFiltered) && (!bAllowed)){
+		//means no params passed. Assume default of printing both
+		bFiltered = true;
+		bAllowed = true;
+	}
 
 	int ptoc_fd[NUM_SYSCALLS][2];   /*  Parent to child pipes    */
 	int ctop_fd[NUM_SYSCALLS][2];   /*  Child to parent pipes    */
 	pid_t children[NUM_SYSCALLS];   /*  Process IDs of children  */
 
 	char readMsg[BUFFER_SIZE];
-
 
 	/*  Create pipe pairs and fork children  */
 	for (auto i = 0; i < NUM_SYSCALLS; ++i) {
@@ -119,7 +178,23 @@ int main() {
 			//cout << "Pipe from child " << i +1 << " closed." << endl;
 		}
 		else {
-			cout << readMsg << endl;
+
+			std::string sReadMsg(readMsg);
+
+			if ((bFiltered) && (bAllowed)) {
+				cout << sReadMsg << endl;
+			} else {
+				if (bFiltered) {
+					if (sReadMsg.find("|filtered|") != std::string::npos) {
+						cout << sReadMsg << endl;
+					}
+				}
+				if (bAllowed) {
+					if (sReadMsg.find("|allowed|") != std::string::npos) {
+						cout << sReadMsg << endl;
+					}
+				}
+			}
 		}
 	}
 
