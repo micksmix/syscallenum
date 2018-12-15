@@ -5,6 +5,7 @@
 #include <sys/syscall.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <vector>
 
 using namespace std;
 
@@ -94,14 +95,70 @@ void child_func(const int wpipe, const auto idx) {
 
 int Usage(char *ProgramName) {
   cout << endl;
-  cout << "Usage: " << ProgramName << " [-f] [-a]" << endl
+  cout << "Usage: " << ProgramName << " [-f] [-a] [-j]" << endl
        << "    or " << ProgramName << endl;
   cout << "  -f     Show only filtered syscalls" << endl;
   cout << "  -a     Show only allowed syscalls" << endl;
+  cout << "  -j     Output as json" << endl;
   cout << endl;
   cout << "NOTE: By default, both allowed and filtered syscalls are returned"
        << endl;
   return -1;
+}
+
+void printJsonOutput(string &sReadMsg, bool &bFirstResult) {
+	
+  size_t last = 0;
+  size_t next = 0;
+  std::vector<string> vResults;
+
+  while ((next = sReadMsg.find("|", last)) != string::npos) {
+    // cout << sReadMsg.substr(last, next - last) << endl;
+    vResults.push_back(sReadMsg.substr(last, next - last));
+    last = next + 1;
+  }
+  vResults.push_back(sReadMsg.substr(last));
+  // cout << sReadMsg.substr(last) << endl;
+
+  // idx, name, sStatus.c_str(), strerror(errno), errno);
+  if (bFirstResult) {
+    cout << "  {" << endl;
+    bFirstResult = false;
+  } else {
+    cout << "," << endl << "  {" << endl;
+  }
+  for (auto idx = 0; idx < vResults.size(); idx++) {
+    switch (idx) {
+    case 0:
+      cout << "    "
+           << "\"number\":"
+           << " \"" << vResults[idx] << "\"," << endl;
+      break;
+    case 1:
+      cout << "    "
+           << "\"name\":"
+           << " \"" << vResults[idx] << "\"," << endl;
+      break;
+    case 2:
+      cout << "    "
+           << "\"status\":"
+           << " \"" << vResults[idx] << "\"," << endl;
+      break;
+    case 3:
+      cout << "    "
+           << "\"errmsg\":"
+           << " \"" << vResults[idx] << "\"," << endl;
+      break;
+    case 4:
+      cout << "    "
+           << "\"errno\":"
+           << " \"" << vResults[idx] << "\"" << endl;
+      break;
+    }
+    // cout << vResults[idx] << "\n";
+  }
+
+  cout << "  }";
 }
 
 int main(int argc, char *argv[]) {
@@ -110,6 +167,8 @@ int main(int argc, char *argv[]) {
   bool bFiltered = false;
   bool bAllowed = false;
   bool bUnknownParam = false;
+  bool bJsonOutput = false;
+  bool bFirstResult = true;
 
   if (argc > 3) {
     return Usage(argv[0]);
@@ -133,6 +192,10 @@ int main(int argc, char *argv[]) {
         case L'a': // allowed syscalls
         case L'A':
           bAllowed = true;
+          break;
+        case L'j': // json output
+        case L'J':
+          bJsonOutput = true;
           break;
         default:
           bUnknownParam = true;
@@ -176,6 +239,10 @@ int main(int argc, char *argv[]) {
   }
 
   /*  Loop through each child  */
+  if (bJsonOutput){
+	  cout << "[" << endl;
+  }
+
   for (auto i = 0; i < NUM_SYSCALLS; ++i) {
     ssize_t num_read;
     if ((num_read = read(ctop_fd[i][0], readMsg, sizeof(readMsg))) == -1) {
@@ -187,20 +254,39 @@ int main(int argc, char *argv[]) {
       std::string sReadMsg(readMsg);
 
       if ((bFiltered) && (bAllowed)) {
-        cout << sReadMsg << endl;
+        // actually prints *every* syscall, even unknown syscalls (e.g if you pass 475 as syscall, will print results)
+        if (bJsonOutput) {
+          printJsonOutput(sReadMsg, bFirstResult);
+        } else {
+          cout << sReadMsg << endl;
+        }
       } else {
         if (bFiltered) {
           if (sReadMsg.find("|filtered|") != std::string::npos) {
-            cout << sReadMsg << endl;
+            //cout << sReadMsg << endl;
+            if (bJsonOutput) {
+              printJsonOutput(sReadMsg, bFirstResult);
+            } else {
+              cout << sReadMsg << endl;
+            }
           }
         }
         if (bAllowed) {
           if (sReadMsg.find("|allowed|") != std::string::npos) {
-            cout << sReadMsg << endl;
+            //cout << sReadMsg << endl;
+            if (bJsonOutput) {
+              printJsonOutput(sReadMsg, bFirstResult);
+            } else {
+              cout << sReadMsg << endl;
+            }
           }
         }
       }
     }
+  }
+
+  if (bJsonOutput){
+	  cout << endl << "]" << endl;
   }
 
   /*  Clean up and harvest dead children  */
