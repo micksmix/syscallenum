@@ -3,9 +3,8 @@ Simple x64 Linux binary to enumerate syscalls.
 Currently it statically links seccomp, so that this can be run on systems that lack seccomp libraries.
 
 I plan to add more functionality to this tool:
- 1. ability to list filtered syscalls
- 2. ability to output as json
- 3. support for compiling with shared seccomp (reduces binary size greatly)
+ * ability to output as json
+ * support for compiling with shared seccomp (reduces binary size greatly)
 
 
  Example:
@@ -29,3 +28,13 @@ I plan to add more functionality to this tool:
 ```
 
 Note the currently non-existent syscalls of 327 and 328 return `(null)` for the syscall name, which indicates they are not valid.
+
+To show only filtered syscalls:
+```
+syscallenum -f
+```
+
+To show only allowed syscalls:
+```
+syscallenum -a
+```
