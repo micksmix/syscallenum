@@ -15,69 +15,6 @@ using namespace std;
 
 const int NUM_SYSCALLS = 330;
 
-void printJsonOutput(string &sReadMsg, bool &bFirstResult)
-{
-
-  size_t last = 0;
-  size_t next = 0;
-  std::vector<string> vResults;
-
-  while ((next = sReadMsg.find("|", last)) != string::npos)
-  {
-    // cout << sReadMsg.substr(last, next - last) << endl;
-    vResults.push_back(sReadMsg.substr(last, next - last));
-    last = next + 1;
-  }
-  vResults.push_back(sReadMsg.substr(last));
-  // cout << sReadMsg.substr(last) << endl;
-
-  // idx, name, sStatus.c_str(), strerror(errno), errno);
-  if (bFirstResult)
-  {
-    cout << "  {" << endl;
-    bFirstResult = false;
-  }
-  else
-  {
-    cout << "," << endl
-         << "  {" << endl;
-  }
-  for (auto idx = 0; idx < vResults.size(); idx++)
-  {
-    switch (idx)
-    {
-    case 0:
-      cout << "    "
-           << "\"number\":"
-           << " \"" << vResults[idx] << "\"," << endl;
-      break;
-    case 1:
-      cout << "    "
-           << "\"name\":"
-           << " \"" << vResults[idx] << "\"," << endl;
-      break;
-    case 2:
-      cout << "    "
-           << "\"status\":"
-           << " \"" << vResults[idx] << "\"," << endl;
-      break;
-    case 3:
-      cout << "    "
-           << "\"errmsg\":"
-           << " \"" << vResults[idx] << "\"," << endl;
-      break;
-    case 4:
-      cout << "    "
-           << "\"errno\":"
-           << " \"" << vResults[idx] << "\"" << endl;
-      break;
-    }
-    // cout << vResults[idx] << "\n";
-  }
-
-  cout << "  }";
-}
-
 int Usage(char *ProgramName)
 {
   cout << endl;
